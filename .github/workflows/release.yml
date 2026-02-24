@@ -21,3 +21,6 @@ jobs:
           goarch: ${{ matrix.goarch }}
           asset_name: backtrace-${{ matrix.goos }}-${{ matrix.goarch }}
           ldflags: -s -w
+          # 关键修改：启用静态编译，消除 glibc 依赖
+        env:
+          CGO_ENABLED: 0
