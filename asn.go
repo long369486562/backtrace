@@ -5,6 +5,7 @@ import (
 	"github.com/fatih/color"
 	"net"
 	"strings"
+	"time"
 )
 
 type Result struct {
