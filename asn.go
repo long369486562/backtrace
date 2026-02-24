@@ -48,27 +48,17 @@ func trace(ch chan Result, i int) {
 			default:
 				c = color.New(color.FgWhite).Add(color.Bold).SprintFunc()
 			}
+
 			// 计算平均延迟
-			var total time.Duration
+			var total int64
 			for _, rtt := range n.RTT {
-				total += rtt
+			    total += rtt.Nanoseconds()
 			}
-			avgRtt := total / time.Duration(len(n.RTT))
+			avgRtt := time.Duration(total / int64(len(n.RTT)))
 			
-			s := fmt.Sprintf("%v %-15s %-23s%v", names[i], ips[i], c(as), avgRtt/time.Millisecond)
+			s := fmt.Sprintf("%v %-15s %-23s%v", names[i], ips[i], c(as), avgRtt.Milliseconds())
 			ch <- Result{i, s}
 			return
-
-			// // 计算平均延迟
-			// var total int64
-			// for _, rtt := range n.RTT {
-			//     total += rtt.Nanoseconds()
-			// }
-			// avgRtt := time.Duration(total / int64(len(n.RTT)))
-			
-			// s := fmt.Sprintf("%v %-15s %-23s%v", names[i], ips[i], c(as), avgRtt.Milliseconds())
-			// ch <- Result{i, s}
-			// return
 		}
 	}
 	c := color.New(color.FgRed).Add(color.Bold).SprintFunc()
