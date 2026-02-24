@@ -32,39 +32,56 @@ func trace(ch chan Result, i int) {
 		return
 	}
 
+	// 计算总的往返时间
+	var totalTime time.Duration
+	var nodeCount int
+	
 	for _, h := range hops {
 		for _, n := range h.Nodes {
-			asn := ipAsn(n.IP.String())
-			as := m[asn]
-			var c func(a ...interface{}) string
-			switch asn {
-			case "":
-				continue
-			case "AS9929":
-				c = color.New(color.FgHiYellow).Add(color.Bold).SprintFunc()
-			case "AS4809":
-				c = color.New(color.FgHiMagenta).Add(color.Bold).SprintFunc()
-			case "AS58807":
-				c = color.New(color.FgHiBlue).Add(color.Bold).SprintFunc()
-			default:
-				c = color.New(color.FgWhite).Add(color.Bold).SprintFunc()
-			}
-
-			// 计算平均延迟
-			var total time.Duration
+			nodeCount += len(n.RTT)
 			for _, rtt := range n.RTT {
-				total += rtt
+				totalTime += rtt
 			}
-			avgRtt := total / time.Duration(len(n.RTT))
 			
-			s := fmt.Sprintf("%v %-15s %-23s%v", names[i], ips[i], c(as), avgRtt/time.Millisecond)
-			ch <- Result{i, s}
-			return
+			asn := ipAsn(n.IP.String())
+			if asn != "" {
+				as := m[asn]
+				var c func(a ...interface{}) string
+				switch asn {
+				case "AS9929":
+					c = color.New(color.FgHiYellow).Add(color.Bold).SprintFunc()
+				case "AS4809":
+					c = color.New(color.FgHiMagenta).Add(color.Bold).SprintFunc()
+				case "AS58807":
+					c = color.New(color.FgHiBlue).Add(color.Bold).SprintFunc()
+				default:
+					c = color.New(color.FgWhite).Add(color.Bold).SprintFunc()
+				}
+
+				// 计算平均延迟
+				var totalNodeTime time.Duration
+				for _, rtt := range n.RTT {
+					totalNodeTime += rtt
+				}
+				avgRtt := totalNodeTime / time.Duration(len(n.RTT))
+				
+				s := fmt.Sprintf("%v %-15s %-23s%v", names[i], ips[i], c(as), avgRtt/time.Millisecond)
+				ch <- Result{i, s}
+				// 不再返回，继续处理其他节点
+			}
 		}
 	}
-	c := color.New(color.FgRed).Add(color.Bold).SprintFunc()
-	s := fmt.Sprintf("%v %-15s %v", names[i], ips[i], c("测试超时"))
-	ch <- Result{i, s}
+	
+	// 输出总延时信息
+	if nodeCount > 0 {
+		totalAvgRtt := totalTime / time.Duration(nodeCount)
+		s := fmt.Sprintf("%v %-15s 总回城延时: %v ms", names[i], ips[i], totalAvgRtt/time.Millisecond)
+		ch <- Result{i, s}
+	} else {
+		c := color.New(color.FgRed).Add(color.Bold).SprintFunc()
+		s := fmt.Sprintf("%v %-15s %v", names[i], ips[i], c("测试超时"))
+		ch <- Result{i, s}
+	}
 }
 
 func ipAsn(ip string) string {
